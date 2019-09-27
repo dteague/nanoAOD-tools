@@ -139,6 +139,7 @@ class jetmetUncertaintiesProducer(Module):
 
     def beginFile(self, inputFile, outputFile, inputTree, wrappedOutputTree):
         self.out = wrappedOutputTree
+        print inputFile, outputFile, inputTree, wrappedOutputTree
         self.out.branch("%s_pt_raw" % self.jetBranchName, "F", lenVar=self.lenVar)
         self.out.branch("%s_pt_nom" % self.jetBranchName, "F", lenVar=self.lenVar)
         self.out.branch("%s_mass_raw" % self.jetBranchName, "F", lenVar=self.lenVar)
@@ -147,6 +148,10 @@ class jetmetUncertaintiesProducer(Module):
         self.out.branch("%s_corr_JER" % self.jetBranchName, "F", lenVar=self.lenVar)
         self.out.branch("%s_corr_JMS" % self.jetBranchName, "F", lenVar=self.lenVar)
         self.out.branch("%s_corr_JMR" % self.jetBranchName, "F", lenVar=self.lenVar)
+
+        self.out.branch("%s_L2L3" % self.jetBranchName, "F", lenVar=self.lenVar)
+        self.out.branch("%s_L1" % self.jetBranchName, "F", lenVar=self.lenVar)
+        self.out.branch("%s_LRes" % self.jetBranchName, "F", lenVar=self.lenVar)
 
         if self.doGroomed:
             self.out.branch("%s_msoftdrop_raw" % self.jetBranchName, "F", lenVar=self.lenVar)
@@ -204,6 +209,10 @@ class jetmetUncertaintiesProducer(Module):
             genSubJetMatcher = matchObjectCollectionMultiple( genJets, genSubJets, dRmax=0.8 )
         
         self.jetSmearer.setSeed(event)
+
+        jet_L1 = []
+        jet_L2L3 = []
+        jet_LRes = []
         
         jets_pt_raw = []
         jets_pt_nom = []
@@ -284,7 +293,12 @@ class jetmetUncertaintiesProducer(Module):
             #jet pt and mass corrections
             jet_pt=jet.pt
             jet_mass=jet.mass
-            
+
+
+            jet_L1.append(self.jetReCalibrator.getCorrection(jet,rho, corrector=self.jetReCalibrator.separateJetCorrectors["myL1"]))
+            jet_L2L3.append(self.jetReCalibrator.getCorrection(jet,rho, corrector=self.jetReCalibrator.separateJetCorrectors["myL2L3"]))
+            jet_LRes.append(self.jetReCalibrator.getCorrection(jet,rho, corrector=self.jetReCalibrator.separateJetCorrectors["myRes"]))
+
             #redo JECs if desired
             if hasattr(jet, "rawFactor"):
                 jet_rawpt = jet_pt * (1 - jet.rawFactor)
@@ -299,6 +313,9 @@ class jetmetUncertaintiesProducer(Module):
             jets_pt_raw.append(jet_rawpt)
             jets_mass_raw.append(jet_rawmass)
             jets_corr_JEC.append(jet_pt/jet_rawpt)
+
+            
+            
             
             genJet = pairs[jet]
             if self.doGroomed:                
@@ -488,7 +505,12 @@ class jetmetUncertaintiesProducer(Module):
         self.out.fillBranch("%s_mass_jmrDown" % self.jetBranchName, jets_mass_jmrDown)
         self.out.fillBranch("%s_mass_jmsUp" % self.jetBranchName, jets_mass_jmsUp)
         self.out.fillBranch("%s_mass_jmsDown" % self.jetBranchName, jets_mass_jmsDown)
-            
+
+        self.out.fillBranch("%s_L1" % self.jetBranchName, jet_L1)
+        self.out.fillBranch("%s_L2L3" % self.jetBranchName, jet_L2L3)
+        self.out.fillBranch("%s_LRes" % self.jetBranchName, jet_LRes)
+
+        
         if self.doGroomed :
             self.out.fillBranch("%s_msoftdrop_raw" % self.jetBranchName, jets_msdcorr_raw)
             self.out.fillBranch("%s_msoftdrop_nom" % self.jetBranchName, jets_msdcorr_nom)

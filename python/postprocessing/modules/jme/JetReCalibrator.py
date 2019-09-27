@@ -29,8 +29,9 @@ class JetReCalibrator:
         if upToLevel >= 2: self.vPar.push_back(self.L2JetPar);
         if upToLevel >= 3: self.vPar.push_back(self.L3JetPar);
         # Add residuals if needed
+        self.ResJetPar = ROOT.JetCorrectorParameters("%s/%s_L2L3Residual_%s.txt" % (path,globalTag,jetFlavour))
+
         if doResidualJECs : 
-            self.ResJetPar = ROOT.JetCorrectorParameters("%s/%s_L2L3Residual_%s.txt" % (path,globalTag,jetFlavour))
             self.vPar.push_back(self.ResJetPar);
         #Step3 (Construct a FactorizedJetCorrector object) 
         self.JetCorrector = ROOT.FactorizedJetCorrector(self.vPar)
@@ -42,6 +43,19 @@ class JetReCalibrator:
             print 'Missing JEC uncertainty file "%s/%s_Uncertainty_%s.txt", so jet energy uncertainties will not be available' % (path,globalTag,jetFlavour)
             self.JetUncertainty = None
         self.separateJetCorrectors = {}
+
+        self.mvParL2L3 = ROOT.vector(ROOT.JetCorrectorParameters)()
+        for i in [self.L2JetPar,self.L3JetPar]:  self.mvParL2L3.push_back(i)
+        self.separateJetCorrectors["myL2L3"] = ROOT.FactorizedJetCorrector(self.mvParL2L3)
+
+        self.mvParL1 = ROOT.vector(ROOT.JetCorrectorParameters)()
+        self.mvParL1.push_back(self.L1JetPar)
+        self.separateJetCorrectors["myL1"] = ROOT.FactorizedJetCorrector(self.mvParL1)
+
+        self.mvParRes = ROOT.vector(ROOT.JetCorrectorParameters)()
+        for i in [self.ResJetPar]:  self.mvParRes.push_back(i)
+        self.separateJetCorrectors["myRes"] = ROOT.FactorizedJetCorrector(self.mvParRes)
+
         if self.calculateSeparateCorrections or self.calculateType1METCorrection:
             self.vParL1 = ROOT.vector(ROOT.JetCorrectorParameters)()
             self.vParL1.push_back(self.L1JetPar)
